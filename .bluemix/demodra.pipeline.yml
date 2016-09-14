@@ -17,6 +17,69 @@ stages:
       export PATH=/opt/IBM/node-v4.2/bin:$PATH
       npm install
       grunt dev-setup --no-color
+- name: Deploy
+  inputs:
+  - type: job
+    stage: BUILD
+    job: Build
+    dir_name: null
+  jobs:
+  - name: Deploy
+    type: deployer
+    target:
+      region_id: ibm:ys1:us-south
+      organization: jparra@us.ibm.com
+      space: dev
+      application: Weather-App-with-DRA
+    script: |
+      #!/bin/bash
+      #cf push "${CF_APP}"
+
+
+      #!/bin/bash
+      # Push app
+      set
+      export CF_APP_NAME="dev-$CF_APP"
+      cf push "${CF_APP_NAME}" -n ${CF_APP_NAME}
+      #export APP_URL=http://$(cf app $CF_APP_NAME | grep urls: | awk '{print $2}')
+      # View logs
+      #cf logs "${CF_APP_NAME}" --recent
+- name: Appscan 2
+  inputs:
+  - type: job
+    stage: BUILD
+    job: Build
+    dir_name: null
+  triggers:
+  - type: stage
+  properties:
+  - name: ENV_NAME
+    value: DEV
+    type: text
+  - name: APP_NAME
+    value: Weather
+    type: text
+  - name: IDRADEBUG
+    value: 'true'
+    type: text
+  - name: EXTENSION_DEBUG
+    value: '1'
+    type: text
+  - name: DEBUG
+    value: '1'
+    type: text
+  jobs:
+  - name: Test
+    type: tester
+    extension_id: ibm.devops.services.pipeline.appscan.dynamic.builder.dratest
+    target:
+      region_id: ibm:ys1:us-south
+      organization: jparra@us.ibm.com
+      space: dev
+    TARGET: http://dev-weather-app-with-dra.stage1.mybluemix.net/
+    SETUP_SERVICE_SPACE: 'true'
+    AD_SCAN_TYPE: Production
+    WAIT_TIME: '59'
 - name: DEV
   inputs:
   - type: job
